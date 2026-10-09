@@ -1,0 +1,29 @@
+{
+  "version": 3,
+  "lists": [
+    {
+      "title": "Dev",
+      "cards": [
+        { "title": "GitHub", "url": "https://github.com/", "customTitle": "", "customDescription": "" },
+        {
+          "title": "MDN Web Docs",
+          "url": "https://developer.mozilla.org/en-US/",
+          "customTitle": "MDN",
+          "customDescription": "Reference for everything web",
+          "favIconUrl": "https://developer.mozilla.org/favicon.ico"
+        },
+        { "title": "Broken", "url": "not a url" },
+        { "title": "Missing url" }
+      ],
+      "labels": ["work"]
+    },
+    { "title": "Empty list", "cards": [] },
+    { "name": "Untitled-ish", "cards": [{ "title": "Example", "url": "https://example.com" }] }
+  ],
+  "groups": [
+    {
+      "name": "Team space",
+      "lists": [{ "title": "Shared", "cards": [{ "title": "Docs", "url": "https://docs.example.com" }] }]
+    }
+  ]
+}

@@ -1,29 +1,67 @@
-What it does
+# tabsforever
 
-New-tab dashboard of collections. You can rename, collapse, reorder and delete them, with an Undo option after deleting. "Open all" opens a collection's links as tabs in the current window, and "New window" opens them in a fresh window.
-Open-tabs sidebar. Drag a tab onto a collection, onto a specific card position, or onto the "new collection" zone. "Save window" saves every tab at once, and there's an optional "close tabs after saving" setting.
-Cards. Drag to reorder or move between collections. Click to open, or Ctrl/Cmd/middle-click to open in the background. You can edit a card's title, add a note and add tags.
-Search. Fuzzy search covers titles, URLs, notes and tags; press / to focus it. Tag chips filter the view.
-Background script. A right-click menu offers "Save tab to → new or recent collection" and "Save all tabs in this window". Clicking the toolbar icon saves the window.
-Import/export. Toby JSON import (including lists nested under groups or spaces), plus tabsforever's own backup format, with a choice to merge or replace.
-Testing
+A tab manager for Chrome and Firefox. Save your open tabs into collections on your new tab page, close them, and reopen them whenever you need them. Everything stays in your browser: no account, no sync, no tracking.
 
-The unit tests cover the data operations, drag-and-drop outcomes, Toby and backup import, search, and storage.
-For the browser test I installed a temporary Chromium in a scratch folder (nothing was added to the project). It covered saving, renaming, both kinds of drag, editing tags, search, tag filtering, Toby import, delete with undo, and reloading. That run caught two bugs, now fixed: tags could end up as ##later, and the trash icon showed as a missing-glyph box.
-Not yet tested
+![The tabsforever dashboard: collections of saved tabs on the left, the current window's open tabs on the right](docs/homepage.png)
 
-Firefox: it builds, but I haven't run it in Firefox.
-Right-click menu and toolbar button: I only confirmed their handlers are registered, not clicked them in a real browser.
-Two gaps
+## Features
 
-There's no extension icon yet, so browsers show a default one.
-The folder isn't a git repository. Tell me if you want me to initialise one and commit.
-Small differences from the plan
+- **Collections on the new tab page.** Rename, collapse, reorder and delete them, with Undo after a delete. **Open all** reopens a collection in the current window, and **New window** opens it in a new one.
+- **Drag to save.** The sidebar lists the tabs open in this window. Drag one onto a collection, between two cards, or onto "Drop here to create a new collection". **Save window** saves everything at once. You can turn on **Close tabs after saving**.
+- **Tab groups.** Grouped tabs appear under their group's name and color. Save a whole group with **Save group** or by dragging it. **Save window** turns each group into its own collection. Collections saved from a group reopen as that group, with the same name and color.
+- **Cards.** Click to open a link, or Ctrl/Cmd/middle-click to open it in the background. Drag cards to reorder them or move them between collections. Edit the title, add a note and add tags.
+- **Search, tags and sorting.** Fuzzy search covers titles, URLs, notes and tags (press `/` to focus it). Tag chips filter the view. You can sort collections by name, newest, recently updated or most tabs, and your manual order is kept.
+- **Duplicates.** A collection never holds the same link twice. If a link is saved in more than one collection, the **Duplicates** chip shows each copy side by side, and you choose which one to keep.
+- **Name suggestions.** Collections with a placeholder name, such as "Session · …" or "Unnamed group", get a suggested name based on their tabs. Click it to use it.
+- **Right-click menu and toolbar button.** Save the current tab to a new or recent collection, save its tab group, or save the whole window.
+- **Import and export.** Import or export a tabsforever backup, and either merge it with your collections or replace them. Export everything as a JSON backup.
 
-One global stylesheet instead of CSS modules.
-React 19 instead of 18.
-Tags are worked out from the cards instead of being stored as a separate list.
-To try it
+![The Import / Export dialog](docs/importexport.png)
 
-Chrome: run npm run dev, or npm run build and then load .output/chrome-mv3 as an unpacked extension.
-Firefox: run npm run dev:firefox.
+## Install from source
+
+You need Node.js 22 or newer.
+
+```sh
+npm install
+npm run build            # Chrome, Edge, Brave and other Chromium browsers → .output/chrome-mv3
+npm run build:firefox    # Firefox → .output/firefox-mv2
+```
+
+- **Chrome and other Chromium browsers:** open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose `.output/chrome-mv3`.
+- **Firefox:** open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…**, and choose `.output/firefox-mv2/manifest.json`. Firefox removes temporary add-ons when it restarts.
+
+The first time you open a new tab, the browser asks whether to keep the extension's new tab page. Choose to keep it.
+
+## Development
+
+Built with [WXT](https://wxt.dev), React and TypeScript.
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Starts a Chromium browser with the extension loaded and reloads it on every change |
+| `npm run dev:firefox` | The same, in Firefox |
+| `npm test` | Runs the unit tests (Vitest) |
+| `npm run compile` | Type-checks the project |
+| `npm run zip` / `npm run zip:firefox` | Packages store-ready zip files |
+
+Where things live:
+
+- `entrypoints/newtab/`: the dashboard page
+- `entrypoints/background.ts`: right-click menu and toolbar button
+- `src/model/`: data types and the pure operations everything goes through (`ops.ts`), plus drag-and-drop, duplicate, sorting and name-suggestion logic
+- `src/storage/db.ts`: storage and data migrations
+- `src/import/`: Toby and backup import
+- `src/components/`: React components
+- `tests/`: unit tests
+
+## Your data
+
+Collections are kept in your browser's local extension storage and nothing is sent anywhere. Uninstalling the extension deletes them, so use **Import / Export → Download backup** to keep a copy.
+
+## Known limitations
+
+- No sync between devices yet. Use export and import to move collections between browsers.
+- Browser pages such as `about:` and `chrome://` can't be saved, because extensions aren't allowed to open them.
+- Tab-group features need a browser version with tab group support for extensions. Without it, tabs are still saved, but group names and colors aren't.
+- There's no custom extension icon yet.

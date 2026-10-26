@@ -4,14 +4,15 @@ import {
   cardFromTab,
   collectionFromGroup,
   collectionIndex,
-  createCollection,
+  dedupeCards,
   deleteCard,
   findCard,
   insertCollection,
   moveCard,
   moveCollection,
+  placeholderCollection,
 } from './ops';
-import type { GroupLike, Op, Root, TabLike } from './types';
+import type { Card, Collection, GroupLike, Op, Root, TabLike } from './types';
 
 export type DragData =
   | { type: 'tab'; tab: TabLike }
@@ -42,6 +43,39 @@ function target(root: Root, drop: DropData): { collectionId: string; index: numb
   }
 }
 
+/** Links the drag carries; collections carry none. */
+function draggedCards(root: Root, drag: DragData): Card[] {
+  switch (drag.type) {
+    case 'tab': {
+      const card = cardFromTab(drag.tab);
+      return card ? [card] : [];
+    }
+    case 'group':
+      return drag.tabs.flatMap((tab) => cardFromTab(tab) ?? []);
+    case 'card': {
+      const found = findCard(root, drag.cardId);
+      return found ? [found.card] : [];
+    }
+    case 'collection':
+      return [];
+  }
+}
+
+/**
+ * How many dragged links the target collection already has. Cards moving
+ * within their own collection don't count.
+ */
+export function duplicatesOnDrop(root: Root, drag: DragData, drop: DropData): { collection: Collection; count: number } | null {
+  const dest = target(root, drop);
+  if (!dest || dest === 'new') return null;
+  const collection = root.collections.find((c) => c.id === dest.collectionId);
+  if (!collection) return null;
+  if (drag.type === 'card' && findCard(root, drag.cardId)?.collection.id === collection.id) return null;
+  const cards = dedupeCards(draggedCards(root, drag));
+  const count = cards.length - dedupeCards(cards, collection.cards).length;
+  return count > 0 ? { collection, count } : null;
+}
+
 export function dropOp(root: Root, drag: DragData, drop: DropData): Op | null {
   if (drag.type === 'collection') {
     if (drop.type !== 'collection' || drop.collectionId === drag.collectionId) return null;
@@ -52,10 +86,14 @@ export function dropOp(root: Root, drag: DragData, drop: DropData): Op | null {
   const dest = target(root, drop);
   if (!dest) return null;
 
+  // Nothing new would be added: everything dragged is already there.
+  const duplicates = duplicatesOnDrop(root, drag, drop);
+  if (duplicates && duplicates.count >= dedupeCards(draggedCards(root, drag)).length) return null;
+
   if (drag.type === 'tab') {
     const card = cardFromTab(drag.tab);
     if (!card) return null;
-    if (dest === 'new') return insertCollection(createCollection(card.title || 'New collection', [card]));
+    if (dest === 'new') return insertCollection(placeholderCollection(card.title || 'New collection', [card]));
     return addCards(dest.collectionId, [card], dest.index);
   }
 
@@ -71,7 +109,7 @@ export function dropOp(root: Root, drag: DragData, drop: DropData): Op | null {
   const found = findCard(root, drag.cardId);
   if (!found) return null;
   if (dest === 'new') {
-    const collection = createCollection(found.card.customTitle || found.card.title || 'New collection', [
+    const collection = placeholderCollection(found.card.customTitle || found.card.title || 'New collection', [
       found.card,
     ]);
     return (r) => insertCollection(collection)(deleteCard(drag.cardId)(r));

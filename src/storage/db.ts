@@ -9,9 +9,17 @@ export const rootItem = storage.defineItem<Root>('local:root', {
   version: 1,
 });
 
-export const settingsItem = storage.defineItem<Settings>('local:settings', {
-  fallback: { closeAfterSave: false },
-});
+export const DEFAULT_SETTINGS: Settings = { closeAfterSave: false, collectionSort: 'manual' };
+
+const settingsStore = storage.defineItem<Partial<Settings>>('local:settings', { fallback: {} });
+
+/** Settings with defaults filled in, so new fields work for existing installs. */
+export const settingsItem = {
+  getValue: async (): Promise<Settings> => ({ ...DEFAULT_SETTINGS, ...(await settingsStore.getValue()) }),
+  setValue: (settings: Settings) => settingsStore.setValue(settings),
+  watch: (cb: (settings: Settings) => void) =>
+    settingsStore.watch((value) => cb({ ...DEFAULT_SETTINGS, ...value })),
+};
 
 let queue: Promise<unknown> = Promise.resolve();
 

@@ -15,12 +15,14 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useMemo, useState } from 'react';
-import { dropOp, type DragData, type DropData } from '../model/drop';
-import { createCollection, findCard, groupTitle, insertCollection } from '../model/ops';
+import { dropOp, duplicatesOnDrop, type DragData, type DropData } from '../model/drop';
+import { findCard, groupTitle, insertCollection, placeholderCollection } from '../model/ops';
 import { useStore } from '../model/store';
 import { filterCollections, isFiltering } from '../search';
 import { closeTabs } from '../tabs/actions';
+import { COLLECTION_SORTS, sortCollections, type CollectionSort } from '../model/sort';
 import { CollectionCard } from './CollectionCard';
+import { DuplicatesView } from './DuplicatesView';
 import { Favicon } from './Favicon';
 import { CardBody } from './LinkCard';
 import { OpenTabsSidebar } from './OpenTabsSidebar';
@@ -50,10 +52,15 @@ const collisionDetection: CollisionDetection = (args) => {
 };
 
 export function Board() {
-  const { root, loaded, query, activeTags, settings, apply, requestRename, clearFilter } = useStore();
+  const { root, loaded, query, activeTags, settings, setSettings, apply, requestRename, clearFilter, showToast, showDuplicates } =
+    useStore();
   const filter = { query, tags: activeTags };
   const filtering = isFiltering(filter);
-  const collections = useMemo(() => filterCollections(root, filter), [root, query, activeTags]);
+  const sort = settings.collectionSort;
+  const collections = useMemo(
+    () => sortCollections(filterCollections(root, filter), sort),
+    [root, query, activeTags, sort],
+  );
   const [dragging, setDragging] = useState<DragData | null>(null);
 
   const sensors = useSensors(
@@ -70,7 +77,13 @@ export function Board() {
     setDragging(null);
     if (!over) return;
     const drag = dataOf<DragData>(active);
-    const op = dropOp(root, drag, dataOf<DropData>(over));
+    const drop = dataOf<DropData>(over);
+    const duplicates = duplicatesOnDrop(root, drag, drop);
+    const op = dropOp(root, drag, drop);
+    if (duplicates) {
+      const where = `“${duplicates.collection.title}”`;
+      showToast(op ? `Skipped ${duplicates.count} already in ${where}` : `Already in ${where}`);
+    }
     if (!op) return;
     void apply(op);
     if (settings.closeAfterSave) {
@@ -80,7 +93,7 @@ export function Board() {
   };
 
   const newCollection = () => {
-    const collection = createCollection('New collection');
+    const collection = placeholderCollection('New collection');
     void apply(insertCollection(collection));
     requestRename(collection.id);
   };
@@ -100,9 +113,24 @@ export function Board() {
             <button className="btn" onClick={newCollection}>
               + New collection
             </button>
+            <label className="sort">
+              <span className="muted">Sort</span>
+              <select
+                value={sort}
+                onChange={(e) => setSettings({ collectionSort: e.target.value as CollectionSort })}
+              >
+                {Object.entries(COLLECTION_SORTS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          {loaded && root.collections.length === 0 && (
+          {showDuplicates && <DuplicatesView />}
+
+          {!showDuplicates && loaded && root.collections.length === 0 && (
             <div className="empty">
               <h2>No collections yet</h2>
               <p>
@@ -111,7 +139,7 @@ export function Board() {
               </p>
             </div>
           )}
-          {filtering && collections.length === 0 && root.collections.length > 0 && (
+          {!showDuplicates && filtering && collections.length === 0 && root.collections.length > 0 && (
             <div className="empty">
               <p>Nothing matches.</p>
               <button className="btn" onClick={clearFilter}>
@@ -120,11 +148,18 @@ export function Board() {
             </div>
           )}
 
-          <SortableContext items={collections.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-            {collections.map((collection) => (
-              <CollectionCard key={collection.id} collection={collection} filtering={filtering} />
-            ))}
-          </SortableContext>
+          {!showDuplicates && (
+            <SortableContext items={collections.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+              {collections.map((collection) => (
+                <CollectionCard
+                  key={collection.id}
+                  collection={collection}
+                  filtering={filtering}
+                  reorderable={sort === 'manual'}
+                />
+              ))}
+            </SortableContext>
+          )}
         </main>
         <OpenTabsSidebar />
       </div>

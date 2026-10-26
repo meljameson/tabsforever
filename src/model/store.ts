@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { mutate, rootItem, settingsItem } from '../storage/db';
+import { DEFAULT_SETTINGS, mutate, rootItem, settingsItem } from '../storage/db';
 import { emptyRoot } from './ops';
 import type { Op, Root, Settings } from './types';
 
@@ -15,6 +15,8 @@ interface State {
   settings: Settings;
   query: string;
   activeTags: string[];
+  /** Dashboard shows the duplicate-links view instead of collections. */
+  showDuplicates: boolean;
   toast: Toast | null;
   /** Collection whose title should open in edit mode (e.g. right after creation). */
   renameRequest: string | null;
@@ -26,6 +28,7 @@ interface State {
   setQuery: (query: string) => void;
   toggleTag: (tag: string) => void;
   clearFilter: () => void;
+  setShowDuplicates: (show: boolean) => void;
   showToast: (message: string, undo?: Op) => void;
   dismissToast: () => void;
   requestRename: (collectionId: string | null) => void;
@@ -36,7 +39,8 @@ let toastSeq = 0;
 export const useStore = create<State>((set, get) => ({
   root: emptyRoot(),
   loaded: false,
-  settings: { closeAfterSave: false },
+  settings: DEFAULT_SETTINGS,
+  showDuplicates: false,
   query: '',
   activeTags: [],
   toast: null,
@@ -79,7 +83,8 @@ export const useStore = create<State>((set, get) => ({
       activeTags: activeTags.includes(tag) ? activeTags.filter((t) => t !== tag) : [...activeTags, tag],
     });
   },
-  clearFilter: () => set({ query: '', activeTags: [] }),
+  clearFilter: () => set({ query: '', activeTags: [], showDuplicates: false }),
+  setShowDuplicates: (showDuplicates) => set({ showDuplicates }),
 
   showToast: (message, undo) => set({ toast: { id: ++toastSeq, message, undo } }),
   dismissToast: () => set({ toast: null }),

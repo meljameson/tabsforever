@@ -1,3 +1,5 @@
+import type { CollectionSort } from './sort';
+
 export interface Card {
   id: string;
   url: string;
@@ -19,6 +21,8 @@ export interface Collection {
   title: string;
   cards: Card[];
   collapsed: boolean;
+  /** True while the title is one the extension picked; enables the name suggestion. */
+  autoTitle?: boolean;
   /** Set when saved from a browser tab group, so reopening recreates the group. */
   tabGroup?: { color: TabGroupColor };
   createdAt: number;
@@ -33,6 +37,7 @@ export interface Root {
 
 export interface Settings {
   closeAfterSave: boolean;
+  collectionSort: CollectionSort;
 }
 
 /** Minimal tab shape needed to make a card, so callers don't depend on browser types. */

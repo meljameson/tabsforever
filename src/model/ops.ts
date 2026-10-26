@@ -18,6 +18,26 @@ export function isOpenable(url: string): boolean {
   }
 }
 
+/** Key for duplicate detection; ignores trivial differences like a bare trailing "#". */
+export function urlKey(url: string): string {
+  try {
+    return new URL(url).href.replace(/#$/, '');
+  } catch {
+    return url;
+  }
+}
+
+/** Drops cards whose URL is already in `existing` or earlier in `cards`. */
+export function dedupeCards(cards: Card[], existing: Card[] = []): Card[] {
+  const seen = new Set(existing.map((c) => urlKey(c.url)));
+  return cards.filter((card) => {
+    const key = urlKey(card.url);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function cardTitle(card: Card): string {
   return card.customTitle || card.title || hostname(card.url) || card.url;
 }
@@ -56,6 +76,11 @@ export function createCollection(title: string, cards: Card[] = [], extra: Parti
   return { id: newId(), title, cards, collapsed: false, createdAt: now, updatedAt: now, ...extra };
 }
 
+/** A collection whose title is a placeholder the user hasn't chosen. */
+export function placeholderCollection(title: string, cards: Card[] = [], extra: Partial<Collection> = {}) {
+  return createCollection(title, cards, { ...extra, autoTitle: true });
+}
+
 export const isGrouped = (tab: TabLike) => tab.groupId !== undefined && tab.groupId !== -1;
 
 export const groupTitle = (group?: Pick<GroupLike, 'title'>) => group?.title?.trim() || 'Unnamed group';
@@ -66,9 +91,12 @@ export function toGroupColor(color: string | undefined): TabGroupColor {
 
 /** A collection made from a browser tab group, remembering its color. */
 export function collectionFromGroup(group: GroupLike | undefined, tabs: TabLike[]): Collection | null {
-  const cards = tabs.flatMap((tab) => cardFromTab(tab) ?? []);
+  const cards = dedupeCards(tabs.flatMap((tab) => cardFromTab(tab) ?? []));
   if (cards.length === 0) return null;
-  return createCollection(groupTitle(group), cards, { tabGroup: { color: toGroupColor(group?.color) } });
+  const tabGroup = { color: toGroupColor(group?.color) };
+  return group?.title?.trim()
+    ? createCollection(groupTitle(group), cards, { tabGroup })
+    : placeholderCollection(groupTitle(group), cards, { tabGroup });
 }
 
 /**
@@ -86,7 +114,7 @@ export function collectionsFromWindow(tabs: TabLike[], groups: GroupLike[]) {
   for (const [groupId, bucket] of buckets) {
     const collection =
       groupId === -1
-        ? createCollection(sessionTitle(), bucket.flatMap((tab) => cardFromTab(tab) ?? []))
+        ? placeholderCollection(sessionTitle(), dedupeCards(bucket.flatMap((tab) => cardFromTab(tab) ?? [])))
         : collectionFromGroup(
             groups.find((g) => g.id === groupId),
             bucket,
@@ -154,7 +182,13 @@ export const insertCollection =
 export const renameCollection =
   (collectionId: string, title: string): Op =>
   (root) =>
-    mapCollection(root, collectionId, (c) => ({ ...c, title }));
+    mapCollection(root, collectionId, (c) => ({ ...c, title, autoTitle: false }));
+
+/** Dismisses the name suggestion, keeping the current title. */
+export const keepTitle =
+  (collectionId: string): Op =>
+  (root) =>
+    mapCollection(root, collectionId, (c) => ({ ...c, autoTitle: false }));
 
 export const setCollapsed =
   (collectionId: string, collapsed: boolean): Op =>
@@ -179,12 +213,13 @@ export const moveCollection =
 
 // --- card ops ---
 
+/** Adds cards to a collection, skipping any whose URL it already contains. */
 export const addCards =
   (collectionId: string, cards: Card[], index?: number): Op =>
   (root) =>
     mapCollection(root, collectionId, (c) => {
       const next = [...c.cards];
-      next.splice(clamp(index ?? next.length, next.length), 0, ...cards);
+      next.splice(clamp(index ?? next.length, next.length), 0, ...dedupeCards(cards, c.cards));
       return { ...c, cards: next };
     });
 
@@ -219,7 +254,10 @@ export const moveCard =
   (cardId: string, toCollectionId: string, toIndex: number): Op =>
   (root) => {
     const found = findCard(root, cardId);
-    if (!found || collectionIndex(root, toCollectionId) === -1) return root;
+    const target = root.collections.find((c) => c.id === toCollectionId);
+    if (!found || !target) return root;
+    // Moving into a collection that already has this link would lose a card.
+    if (target.id !== found.collection.id && dedupeCards([found.card], target.cards).length === 0) return root;
     const removed = deleteCard(cardId)(root);
     return addCards(toCollectionId, [found.card], toIndex)(removed);
   };

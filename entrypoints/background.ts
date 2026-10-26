@@ -5,10 +5,10 @@ import {
   cardFromTab,
   collectionFromGroup,
   collectionsFromWindow,
-  createCollection,
   insertCollection,
   insertCollections,
   isGrouped,
+  placeholderCollection,
 } from '../src/model/ops';
 import type { Card, Root, TabLike } from '../src/model/types';
 import { mutate, rootItem, settingsItem } from '../src/storage/db';
@@ -95,7 +95,7 @@ async function saveTab(tab: Browser.tabs.Tab, collectionId?: string) {
   await mutate(
     collectionId
       ? addCards(collectionId, [card])
-      : insertCollection(createCollection(card.title || 'New collection', [card])),
+      : insertCollection(placeholderCollection(card.title || 'New collection', [card])),
   );
   await closeSaved([tab], tab.windowId);
 }

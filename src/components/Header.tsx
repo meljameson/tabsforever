@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { findDuplicates } from '../model/duplicates';
 import { allTags } from '../model/ops';
 import { useStore } from '../model/store';
 import { ImportExportDialog } from './ImportExportDialog';
@@ -55,11 +56,22 @@ function SearchBar() {
 }
 
 function TagFilter() {
-  const { root, activeTags, toggleTag } = useStore();
+  const { root, activeTags, toggleTag, showDuplicates, setShowDuplicates } = useStore();
   const tags = useMemo(() => allTags(root), [root]);
-  if (tags.length === 0) return null;
+  const duplicates = useMemo(() => findDuplicates(root).length, [root]);
+  if (tags.length === 0 && duplicates === 0 && !showDuplicates) return null;
   return (
     <div className="tag-filter">
+      {(duplicates > 0 || showDuplicates) && (
+        <button
+          className={`tag tag--button tag--dup${showDuplicates ? ' tag--active' : ''}`}
+          aria-pressed={showDuplicates}
+          title="Show links saved more than once"
+          onClick={() => setShowDuplicates(!showDuplicates)}
+        >
+          Duplicates ({duplicates})
+        </button>
+      )}
       {tags.map((tag) => (
         <button
           key={tag}

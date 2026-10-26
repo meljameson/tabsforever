@@ -704,3 +704,133 @@ h3 {
 .group-border--orange {
   --group-color: var(--group-orange);
 }
+
+/* ---------- name suggestion ---------- */
+
+.suggestion {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  border: 1px dashed var(--accent);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  min-width: 0;
+}
+.suggestion button {
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 4px 2px 10px;
+}
+.suggestion .suggestion__apply {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+.suggestion .suggestion__dismiss {
+  padding: 2px 8px 2px 4px;
+  opacity: 0.7;
+}
+.suggestion button:hover {
+  text-decoration: underline;
+}
+.suggestion .suggestion__dismiss:hover {
+  opacity: 1;
+  text-decoration: none;
+}
+.suggestion__label {
+  opacity: 0.75;
+}
+
+/* ---------- sort & duplicates ---------- */
+
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.sort select {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  padding: 6px 8px;
+}
+.tag--dup {
+  font-weight: 600;
+}
+
+.duplicates__header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+}
+.duplicates__header h2 {
+  font-size: 16px;
+}
+.duplicates__header p {
+  margin: 0;
+  flex: 1;
+}
+.dup-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px 12px 12px;
+  margin-top: 12px;
+}
+.dup-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.dup-group__title {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dup-group__url {
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dup-group__count {
+  font-size: 12px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.dup-group__copies {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.dup-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+.dup-copy .card {
+  width: 100%;
+}
+.dup-copy__where {
+  font-size: 12px;
+  color: var(--muted);
+}
+.card--static {
+  cursor: default;
+}
+.card--static:hover {
+  border-color: var(--border);
+}

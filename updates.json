@@ -1,7 +1,13 @@
 {
   "addons": {
     "tabsforever@meljameson.github.io": {
-      "updates": []
+      "updates": [
+        {
+          "version": "0.1.1",
+          "update_link": "https://github.com/meljameson/tabsforever/releases/download/v0.1.1/tabsforever-0.1.1-firefox.xpi",
+          "update_hash": "sha256:bea3f2d1c93dc1b3649a291677ccc2011fbabc5033f2119f647bc0d8dc8bc867"
+        }
+      ]
     }
   }
 }

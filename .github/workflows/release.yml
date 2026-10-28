@@ -1,0 +1,81 @@
+# Publishes a release when a version tag is pushed:
+#   npm version patch && git push --follow-tags
+#
+# Needs two repository secrets from https://addons.mozilla.org/developers/addon/api/key/
+#   AMO_JWT_ISSUER, AMO_JWT_SECRET
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the release and commit updates.json
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Check tag matches package.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $VERSION" >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - run: npm ci
+      - run: npm run compile
+      - run: npm test
+
+      - name: Build and package
+        run: |
+          npm run zip
+          npm run zip:firefox
+          npx --yes web-ext@10 lint --source-dir .output/firefox-mv2 --self-hosted
+
+      - name: Sign Firefox build (unlisted)
+        run: |
+          npx --yes web-ext@10 sign \
+            --channel unlisted \
+            --source-dir .output/firefox-mv2 \
+            --upload-source-code .output/tabsforever-$VERSION-sources.zip \
+            --artifacts-dir signed \
+            --api-key "${{ secrets.AMO_JWT_ISSUER }}" \
+            --api-secret "${{ secrets.AMO_JWT_SECRET }}"
+          mv signed/*.xpi "tabsforever-$VERSION-firefox.xpi"
+          mv .output/tabsforever-$VERSION-chrome.zip "tabsforever-$VERSION-chrome.zip"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "tabsforever-$VERSION-firefox.xpi" \
+            "tabsforever-$VERSION-chrome.zip" \
+            --title "tabsforever $VERSION" \
+            --generate-notes
+
+      - name: Publish Firefox update
+        run: |
+          git fetch origin main
+          git checkout main
+          node scripts/add-firefox-update.mjs "$VERSION" "tabsforever-$VERSION-firefox.xpi" \
+            "https://github.com/${{ github.repository }}/releases/download/$GITHUB_REF_NAME/tabsforever-$VERSION-firefox.xpi"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add updates.json
+          git commit -m "Firefox update manifest: $VERSION"
+          git push origin main

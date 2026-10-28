@@ -18,7 +18,16 @@ A tab manager for Chrome and Firefox. Save your open tabs into collections on yo
 
 ![The Import / Export dialog](docs/importexport.png)
 
-## Install from source
+## Install
+
+Download the latest version from [Releases](https://github.com/meljameson/tabsforever/releases/latest).
+
+- **Firefox:** click `tabsforever-<version>-firefox.xpi` and confirm the install. It's signed by Mozilla and updates itself when a new version comes out.
+- **Chrome, Edge, Brave and other Chromium browsers:** download `tabsforever-<version>-chrome.zip` and unzip it. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose the unzipped folder. Chromium browsers don't update extensions installed this way, so download new releases yourself.
+
+The first time you open a new tab, the browser asks whether to keep the extension's new tab page. Choose to keep it.
+
+### Build from source
 
 You need Node.js 22 or newer.
 
@@ -30,8 +39,6 @@ npm run build:firefox    # Firefox → .output/firefox-mv2
 
 - **Chrome and other Chromium browsers:** open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose `.output/chrome-mv3`.
 - **Firefox:** open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…**, and choose `.output/firefox-mv2/manifest.json`. Firefox removes temporary add-ons when it restarts.
-
-The first time you open a new tab, the browser asks whether to keep the extension's new tab page. Choose to keep it.
 
 ## Development
 
@@ -54,6 +61,21 @@ Where things live:
 - `src/import/`: Toby and backup import
 - `src/components/`: React components
 - `tests/`: unit tests
+
+### Releasing
+
+Releases are built by [GitHub Actions](.github/workflows/release.yml) when a version tag is pushed:
+
+```sh
+npm version patch        # or minor / major: bumps package.json and creates the tag
+git push --follow-tags
+```
+
+The workflow type-checks and tests the project, builds both browsers, and gets the Firefox build signed by Mozilla as an unlisted (self-distributed) add-on. It then publishes a GitHub Release with the `.xpi` and the Chrome `.zip`, and adds the new version to [`updates.json`](updates.json). Installed Firefox copies check that file to find updates.
+
+One-time setup: create API credentials at [addons.mozilla.org → Manage API Keys](https://addons.mozilla.org/developers/addon/api/key/), and add them as the repository secrets `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`.
+
+Don't change the Firefox add-on id (`tabsforever@meljameson.github.io`) or the `update_url` in [`wxt.config.ts`](wxt.config.ts). Installed copies rely on both to find updates.
 
 ## Your data
 

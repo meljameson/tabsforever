@@ -10,7 +10,10 @@ export default defineConfig({
     ...(browser === 'firefox' && {
       browser_specific_settings: {
         gecko: {
-          id: 'tabsforever@local',
+          // Permanent: installed copies use it to find their updates. Don't change it.
+          id: 'tabsforever@meljameson.github.io',
+          // Self-distributed from GitHub Releases; see scripts/add-firefox-update.mjs.
+          update_url: 'https://raw.githubusercontent.com/meljameson/tabsforever/main/updates.json',
           // Everything stays in local extension storage; nothing is sent anywhere.
           data_collection_permissions: { required: ['none'] },
         },

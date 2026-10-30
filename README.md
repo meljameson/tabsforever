@@ -73,10 +73,6 @@ git push --follow-tags
 
 The workflow type-checks and tests the project, builds both browsers, and gets the Firefox build signed by Mozilla as an unlisted (self-distributed) add-on. It then publishes a GitHub Release with the `.xpi` and the Chrome `.zip`, and adds the new version to [`updates.json`](updates.json). Installed Firefox copies check that file to find updates.
 
-One-time setup: create API credentials at [addons.mozilla.org → Manage API Keys](https://addons.mozilla.org/developers/addon/api/key/), and add them as the repository secrets `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`.
-
-Don't change the Firefox add-on id (`tabsforever@meljameson.github.io`) or the `update_url` in [`wxt.config.ts`](wxt.config.ts). Installed copies rely on both to find updates.
-
 ## Your data
 
 Collections are kept in your browser's local extension storage and nothing is sent anywhere. Uninstalling the extension deletes them, so use **Import / Export → Download backup** to keep a copy.
